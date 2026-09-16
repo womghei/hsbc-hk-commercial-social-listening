@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Business Banking 负责人 · 汇丰香港商业银行社交聆听</title>
+<link rel="stylesheet" href="shared/theme.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Chart.js optional; dashboard.js guards if CDN blocked -->
+</head>
+<body data-persona="business-banking">
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">汇丰香港 · 商业银行社交聆听
+        <span class="brand-sub" id="personaAudience">—</span>
+      </span>
+    </a>
+    <div class="top-meta">
+      <div id="personaTitle">Business Banking 负责人</div>
+      <div id="updatedAt">—</div>
+    </div>
+  </div>
+  
+  <nav class="persona-nav" aria-label="角色版本">
+    <a href="index.html">总览入口</a>
+    <a href="head.html" data-id="head">香港管理层</a>
+    <a href="business-banking.html" data-id="business-banking">Business Banking</a>
+    <a href="sme-mid.html" data-id="sme-mid">中型企业</a>
+    <a href="large-corp.html" data-id="large-corp">大型企业</a>
+    <a href="cmo.html" data-id="cmo">CMO</a>
+    <a href="cto.html" data-id="cto">CTO</a>
+  </nav>
+</header>
+
+<nav class="page-tabs" aria-label="页面">
+  <div class="page-tabs-inner">
+    <button type="button" class="page-tab active" data-page="page1">1 管理层总览</button>
+    <button type="button" class="page-tab" data-page="page2">2 明细与帖子</button>
+    <button type="button" class="page-tab" data-page="page3">3 方法说明</button>
+  </div>
+</nav>
+
+<main class="wrap">
+  <!-- PAGE 1 -->
+  <section id="page1" class="page active">
+    <div class="hero-strip">
+      <div class="label"><span class="hex-accent"></span>高管一句话</div>
+      <p id="oneLiner">—</p>
+    </div>
+
+    <div class="section-title"><span class="hex-accent"></span>关键指标</div>
+    <div class="kpi-strip" id="kpiStrip"></div>
+
+    <div class="section-title"><span class="hex-accent"></span>本周关注</div>
+    <div class="focus-row" id="focusWeek"></div>
+
+    <div class="grid-23" style="margin-top:20px">
+      <div class="card">
+        <h3>情感结构 <span class="badge-demo" style="display:none"></span></h3>
+        <div class="chart-box"><canvas id="sentimentDonut"></canvas></div>
+        <div class="donut-legend" id="sentimentLegend"></div>
+        <div class="section-title" style="margin-top:16px;font-size:0.8rem">周趋势（示意） <span class="badge-demo">示意数据</span></div>
+        <div class="spark-wrap"><canvas id="sentimentSpark"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>品牌词云</h3>
+        <div class="wordcloud" id="wordCloud" aria-label="词云"></div>
+        <p class="card-muted" style="margin-top:8px">基于清洗后标题/摘要词频 · 纯前端布局 · 无外部词云依赖</p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:16px">
+      <div class="card">
+        <h3>主题 / 痛点分布</h3>
+        <div class="bar-list" id="themeBars"></div>
+      </div>
+      <div class="card">
+        <h3>竞品亮点 · 声量与情感 <span class="badge-demo">示意数据</span></h3>
+        <p class="card-muted" style="margin-top:-4px;margin-bottom:10px">汇丰 vs 渣打 vs 中银香港 vs 恒生 vs 虚拟银行</p>
+        <div id="compTable"></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="hex-accent"></span>热点风险与机会</div>
+    <div class="issue-grid" id="issueGrid"></div>
+
+    <div class="grid-2" style="margin-top:16px">
+      <div class="card">
+        <h3>声音构成 · 个人户噪声 / 商业真实 / 中介</h3>
+        <div class="mix-bars" id="voiceMixBar"></div>
+        <div class="mix-legend" id="voiceMixLegend"></div>
+        <p class="card-muted" style="margin-top:10px">全量样本口径；KPI 默认按清洗后重算</p>
+      </div>
+      <div class="card">
+        <h3>客群片段（示意标签）</h3>
+        <div class="bar-list" id="segmentMix"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>角色洞察 · Business Banking 负责人</h3>
+      <ul class="insight-list" id="insightList"></ul>
+    </div>
+  </section>
+
+  <!-- PAGE 2 -->
+  <section id="page2" class="page">
+    <div class="section-title"><span class="hex-accent"></span>筛选与明细</div>
+    <div class="filters">
+      <label><input type="checkbox" id="fHideInt"/> 隐藏中介/公司秘书/企服</label>
+      <label><input type="checkbox" id="fHidePers"/> 隐藏个人户噪声</label>
+      <label>情感 <select id="fSentiment"></select></label>
+      <label>分类 <select id="fCategory"></select></label>
+      <label>搜索 <input type="search" id="fSearch" placeholder="标题/摘要/作者" style="min-width:160px"/></label>
+      <span class="filter-count" id="filterCount">—</span>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3>主题浏览器</h3>
+      <div class="topic-chips" id="topicChips"></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:auto">
+      <table class="post-table">
+        <thead>
+          <tr>
+            <th style="min-width:280px">标题 / 摘要</th>
+            <th>情感</th>
+            <th>分类</th>
+            <th>作者类型</th>
+            <th>来源</th>
+            <th>竞品提及</th>
+          </tr>
+        </thead>
+        <tbody id="postBody"></tbody>
+      </table>
+    </div>
+    <p class="card-muted" style="margin-top:10px">不编造小红书外链；Just One 条目仅展示 note id。占位帖标有「示意」。</p>
+  </section>
+
+  <!-- PAGE 3 -->
+  <section id="page3" class="page">
+    <div class="section-title"><span class="hex-accent"></span>方法说明</div>
+    <div class="method-block" id="methodBody"></div>
+  </section>
+</main>
+
+<footer class="footer">
+  汇丰银行香港 · 商业银行社交聆听看板套件 v2 · 主题参考 business.hsbc.com.hk · 仅供内部管理层沟通演示 · 含第三方 API 样本，请人工核对中介噪声
+</footer>
+
+<script src="shared/data.js"></script>
+<script src="shared/dashboard.js"></script>
+</body>
+</html>
