@@ -18,13 +18,6 @@
   function L(zh) { return I18N ? I18N.label(zh) : zh; }
   function Sent(zh) { return I18N ? I18N.sentiment(zh) : zh; }
   function isEn() { return !!(I18N && I18N.isEn()); }
-  function enSafe(value, fallback) {
-    if (!isEn()) return value == null ? '' : String(value);
-    var clean = String(value == null ? '' : value)
-      .replace(/[\u4e00-\u9fff]+/g, ' ')
-      .replace(/\s+/g, ' ').trim();
-    return clean || fallback || '';
-  }
   function livePersona() {
     var base = (DATA.personas && (DATA.personas[personaId] || DATA.personas.head)) || {};
     return I18N ? I18N.persona(personaId, base) : base;
@@ -229,13 +222,20 @@
       }
     } else if (spark && trend) {
       sparkTextFallback(spark, trend);
+    } else if (trend) {
+      var sparkFallback = byId('sentimentSparkFallback');
+      if (sparkFallback) setText(sparkFallback, sparkFallbackText(trend));
     }
   }
 
+  function sparkFallbackText(trend) {
+    return t('trend.fallback') + ' ' + (trend.positive || []).join('/') + ' · ' + t('trend.neg') + ' ' + (trend.negative || []).join('/');
+  }
   function sparkTextFallback(spark, trend) {
     var host = spark && spark.parentNode;
     if (host && 'innerHTML' in host) {
-      setHTML(host, '<p class="card-muted">' + t('trend.fallback') + ' ' + (trend.positive || []).join('/') + ' · ' + t('trend.neg') + ' ' + (trend.negative || []).join('/') + '</p>');
+      setHTML(host, '<p id="sentimentSparkFallback" class="card-muted"></p>');
+      setText(byId('sentimentSparkFallback'), sparkFallbackText(trend));
     }
   }
 
@@ -585,10 +585,10 @@
       var comps = (p.competitors && p.competitors.length) ? p.competitors.map(function (c) { return L(c); }).join(isEn() ? ', ' : '、') : '—';
       var noteId = p.note_id || '';
       var postUrl = p.url || (noteId ? ('https://www.xiaohongshu.com/explore/' + noteId) : '');
-      var rawTitle = (isEn() ? p.title_en : p.title) || (isEn() ? '' : p.title_en) || t('no_title');
-      var rawSummary = (isEn() ? p.summary_en : p.summary) || (isEn() ? '' : p.summary_en) || '';
-      var title = isEn() ? enSafe(rawTitle, 'Xiaohongshu commercial banking post') : rawTitle;
-      var summary = isEn() ? enSafe(rawSummary, '') : rawSummary;
+      // Post content is always shown in its original Simplified Chinese, regardless of UI language.
+      // EN translation applies to dashboard chrome, filters, labels, and analysis only.
+      var title = p.title || t('no_title');
+      var summary = p.summary || '';
       var thumb = p.cover_url
         ? ('<button type="button" class="cover-view" data-cover="' + esc(p.cover_url) + '" data-title="' + esc(title) + '" aria-label="' + esc(t('feed.view_cover') + ': ' + title) + '"><img class="thumb" src="' + esc(p.cover_url) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'image-failed\');this.style.display=\'none\'"/><span>' + t('table.view') + '</span></button>')
         : '<span class="cover-missing" aria-label="' + esc(t('modal.image_unavailable')) + '">—</span>';
