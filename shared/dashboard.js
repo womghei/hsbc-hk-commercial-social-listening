@@ -128,7 +128,7 @@
       { key: 'net_sentiment', label: t('kpi.net_sentiment'), hint: t('kpi.net_sentiment_h'), fmt: function (v) { return (v > 0 ? '+' : '') + v + 'pp'; } },
       { key: 'commercial_related_pct', label: t('kpi.commercial_related_pct'), hint: t('kpi.commercial_related_pct_h'), fmt: function (v) { return v + '%'; } },
       { key: 'intermediary_count', label: t('kpi.intermediary_count'), hint: t('kpi.intermediary_count_h'), fmt: function (v) { return v; } },
-      { key: 'justone_count', label: t('kpi.justone_count'), hint: t('kpi.justone_count_h') + ' ' + phHint, fmt: function (v) { return v; } },
+      { key: 'xhs_sample_count', label: t('kpi.xhs_sample_count'), hint: t('kpi.xhs_sample_count_h'), fmt: function (v) { return v; } },
       { key: 'placeholder_count', label: t('kpi.placeholder_count'), hint: t('kpi.placeholder_count_h'), fmt: function (v) { return v; } },
       { key: 'hot_theme_count', label: t('kpi.hot_theme_count'), hint: t('kpi.hot_theme_count_h'), fmt: function (v) { return v; } }
     ];
@@ -469,11 +469,22 @@
     }
     setHTML(tbody, posts.slice(0, 100).map(function (p) {
       var demo = p.is_placeholder ? '<span class="pill demo">' + t('badge.demo_short') + '</span> ' : '';
-      var src = p.source_status === 'justone_api' ? '<span class="pill src">Just One</span>' : '<span class="pill demo">' + t('badge.placeholder') + '</span>';
+      var srcStatus = p.source_status || '';
+      var srcLabel = (isEn() ? (p.source_label_en || p.source_label || '') : (p.source_label || '')) || '';
+      var src;
+      if (srcStatus === 'xhs_public' || srcStatus === 'xhs_sample_api') {
+        src = '<span class="pill src">' + (isEn() ? 'XHS sample' : '小红书样本') + '</span>';
+      } else if (srcStatus === 'web_informed') {
+        src = '<span class="pill src">' + (isEn() ? 'Web Informed' : 'Web Informed') + '</span>';
+      } else if (p.is_placeholder || srcStatus === 'placeholder') {
+        src = '<span class="pill demo">' + t('badge.placeholder') + '</span>';
+      } else {
+        src = srcLabel ? '<span class="pill src">' + esc(srcLabel) + '</span>' : '';
+      }
       var comps = (p.competitors && p.competitors.length) ? p.competitors.join('、') : '—';
       return '<tr>' +
-        '<td><div class="title">' + demo + esc(p.title || t('no_title')) + '</div>' +
-        '<div class="summary">' + esc(p.summary || '') + '</div>' +
+        '<td><div class="title">' + demo + esc((isEn() ? (p.title_en || p.title) : (p.title || p.title_en)) || t('no_title')) + '</div>' +
+        '<div class="summary">' + esc((isEn() ? (p.summary_en || p.summary) : (p.summary || p.summary_en)) || '') + '</div>' +
         (isEn() ? '<div class="card-muted" style="margin-top:4px;font-style:italic">' + t('feed.orig_note') + '</div>' : '') +
         '<div class="card-muted" style="margin-top:4px">' + esc(p.id || '') + '</div></td>' +
         '<td><span class="pill ' + esc(p.sentiment) + '">' + esc(Sent(p.sentiment)) + '</span></td>' +
@@ -498,7 +509,7 @@
       '<h3>' + t('method.src') + '</h3>' +
       '<ul>' +
       '<li><strong>' + t('method.platform') + '</strong>' + esc(L(m.focus_platform || '小红书')) + '</li>' +
-      '<li><strong>' + t('method.sample') + '</strong>Just One API ' + (k.justone_count || 0) + ' + ' + t('badge.placeholder') + ' ' + (k.placeholder_count || 0) + ' (Σ ' + ((DATA.posts || []).length) + ')</li>' +
+      '<li><strong>' + t('method.sample') + '</strong>' + (isEn() ? 'Xiaohongshu public sample ' : '小红书公开内容样本 ') + (k.xhs_sample_count || k.xhs_sample_count || 0) + (k.web_informed_count ? ((isEn() ? ' + Web Informed ' : ' + Web Informed ') + k.web_informed_count) : '') + ' (Σ ' + ((DATA.posts || []).length) + ')</li>' +
       '<li><strong>' + t('method.updated') + '</strong>' + esc(m.updated_at_display || '') + '</li>' +
       '<li><strong>' + t('method.filter') + '</strong>' + t('method.filter_v') + '</li>' +
       '<li><strong>' + t('method.disclaimer') + '</strong>' + esc(disc || '') + '</li>' +
