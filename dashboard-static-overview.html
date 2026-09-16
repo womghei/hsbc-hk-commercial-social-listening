@@ -30,7 +30,7 @@
 <nav class="page-tabs"><div class="page-tabs-inner"><span class="page-tab active" data-i18n="static.tab">1 管理层总览（静态）</span></div></nav>
 <main class="wrap">
   <p id="staticLangNote" class="card-muted" style="display:none;margin:0 0 12px" data-i18n="static.en_note">English labels via toggle or ?lang=en</p>
-  <div class="hero-strip"><div class="label"><span class="hex-accent"></span><span data-i18n="sec.one_liner">高管一句话</span></div><p><span data-static-zh="清洗后样本显示：开户透明度与客户经理连续性是核心声誉风险；竞品对比活跃，需主动澄清费用与时效预期。" data-static-en="Cleaned sample: opening transparency and RM continuity are core reputation risks; competitor comparisons are active — clarify fees and timeline expectations.">清洗后样本显示：开户透明度与客户经理连续性是核心声誉风险；竞品对比活跃，需主动澄清费用与时效预期。</span></p></div>
+  <div class="hero-strip"><div class="label"><span class="hex-accent"></span><span data-i18n="sec.one_liner">高管一句话</span></div><p><span data-static-zh="清洗后样本的净情感仍为负，负面主要集中在开户材料、预约与时效的不确定性，恒生、中银香港和渣打的便利叙事也在争夺中小企注意力。管理层应升级高传播风险、统一对外说明材料与预计时效，并以周度净情感和竞品声量检视改善。" data-static-en="Cleaned net sentiment remains negative, with reputation risk concentrated in uncertainty around opening documents, booking and timelines; convenience narratives from Hang Seng, BOCHK and Standard Chartered also compete for SME attention. Management should escalate fast-moving risks, publish one consistent documents-and-timeline guide, and review weekly net sentiment and competitor share of voice.">清洗后样本的净情感仍为负，负面主要集中在开户材料、预约与时效的不确定性，恒生、中银香港和渣打的便利叙事也在争夺中小企注意力。管理层应升级高传播风险、统一对外说明材料与预计时效，并以周度净情感和竞品声量检视改善。</span></p></div>
   <div class="section-title"><span class="hex-accent"></span><span data-i18n="sec.kpis">关键指标</span></div>
   <div class="kpi-strip">
     <div class="kpi"><div class="k-label" data-i18n="kpi.total_posts">可见帖数</div><div class="k-value">75</div><div class="k-hint" data-i18n="kpi.total_posts_h">噪声过滤后</div></div>
@@ -87,9 +87,42 @@
 <script>
 (function(){
   var I=window.HSBC_I18N; if(!I) return;
+  var STATIC_EN = '<main id="staticEnglishOverview" class="wrap">\n  <div class="hero-strip"><div class="label"><span class="hex-accent"></span>Executive one-liner</div><p>Cleaned net sentiment remains negative, with reputation risk concentrated in uncertainty around opening documents, booking and timelines; convenience narratives from Hang Seng, BOCHK and Standard Chartered also compete for SME attention. Management should escalate fast-moving risks, publish one consistent documents-and-timeline guide, and review weekly net sentiment and competitor share of voice.</p></div>\n  <div class="section-title"><span class="hex-accent"></span>Key metrics</div><div class="kpi-strip"><div class="kpi"><div class="k-label">Visible posts</div><div class="k-value">225</div><div class="k-hint">After noise filters</div></div><div class="kpi"><div class="k-label">Positive</div><div class="k-value">11.6%</div><div class="k-hint">Positive sentiment</div></div><div class="kpi"><div class="k-label">Negative</div><div class="k-value">17.3%</div><div class="k-hint">Negative sentiment</div></div><div class="kpi"><div class="k-label">Net sentiment</div><div class="k-value">−5.7pp</div><div class="k-hint">Positive minus negative</div></div><div class="kpi"><div class="k-label">Intermediaries</div><div class="k-value">29</div><div class="k-hint">Full sample</div></div><div class="kpi"><div class="k-label">XHS sample</div><div class="k-value">254</div><div class="k-hint">Public sample</div></div></div>\n  <div class="grid-2" style="margin-top:16px"><div class="card"><h3>Executive overview</h3><p>The current suite covers 254 public Xiaohongshu posts. Account opening leads with 144 mentions, followed by trade finance / FX and competitor comparisons at 44 each. Intermediary or B2B promotion accounts for 29 posts, so management reporting uses the cleaned view.</p></div><div class="card"><h3>Priority risks</h3><ul><li>Unclear documents, booking and timelines create avoidable negative word-of-mouth.</li><li>RM handover gaps weaken trust in cross-border collection and FX moments.</li><li>Intermediary content dilutes real-customer sentiment signals.</li></ul></div></div>\n  <div class="grid-2" style="margin-top:16px"><div class="card"><h3>Opportunities and actions</h3><ul><li>Publish a documents and expected-timeline one-pager.</li><li>Establish an RM handover SLA and 30–90 day follow-up templates.</li><li>Clarify fee thresholds and package fit; amplify real service success stories.</li></ul></div><div class="card"><h3>Methodology</h3><p>Public Xiaohongshu commercial-related sample; personal-banking noise and placeholders removed. Competitor share of voice is based on mention frequency in this sample and is not formal market share.</p></div></div>\n</main>';
+  var STATIC_ORIGINAL_MAIN = document.querySelector('main.wrap:not(#staticEnglishOverview)');
+  var STATIC_ZH = {
+    title: document.title,
+    banner: document.querySelector('.static-banner') ? document.querySelector('.static-banner').textContent : '',
+    brandHtml: document.querySelector('.brand-text') ? document.querySelector('.brand-text').innerHTML : '',
+    meta0: document.querySelectorAll('.top-meta > div')[0] ? document.querySelectorAll('.top-meta > div')[0].textContent : '',
+    meta1: document.querySelectorAll('.top-meta > div')[1] ? document.querySelectorAll('.top-meta > div')[1].textContent : '',
+    tab: document.querySelector('.page-tabs .page-tab') ? document.querySelector('.page-tabs .page-tab').textContent : '',
+    footer: document.querySelector('footer.footer') ? document.querySelector('footer.footer').textContent : ''
+  };
   function applyStatic(){
     I.applyDom(document);
     var en=I.isEn();
+    var originalMain=STATIC_ORIGINAL_MAIN;
+    var enMain=document.getElementById('staticEnglishOverview');
+    if(en) {
+      document.title='HK Management overview · Static snapshot · HSBC HK Commercial Social Listening';
+      if(!enMain && originalMain && originalMain.parentNode) { originalMain.insertAdjacentHTML('afterend', STATIC_EN); enMain=document.getElementById('staticEnglishOverview'); }
+      if(originalMain && originalMain.parentNode) originalMain.parentNode.removeChild(originalMain);
+      if(enMain) enMain.style.display='block';
+      var banner=document.querySelector('.static-banner'); if(banner) banner.textContent='Static snapshot (no JavaScript required) · HK Management · updated 2026-09-16 23:01 HKT';
+      var brand=document.querySelector('.brand-text'); if(brand) brand.innerHTML='<span>HSBC HK · Commercial Social Listening<span class="brand-sub">HK Management / Country Head</span></span>';
+      var meta=document.querySelectorAll('.top-meta > div'); if(meta[0]) meta[0].textContent='HK Management overview'; if(meta[1]) meta[1].textContent='Updated 2026-09-16 23:01 HKT';
+      var tab=document.querySelector('.page-tabs .page-tab'); if(tab) tab.textContent='1 Management overview (static)';
+      var footer=document.querySelector('footer.footer'); if(footer) footer.textContent='HSBC Hong Kong · Commercial Social Listening static snapshot · internal demo';
+    } else {
+      if(originalMain && !originalMain.parentNode && enMain && enMain.parentNode) enMain.parentNode.insertBefore(originalMain, enMain);
+      if(originalMain) originalMain.style.display='block'; if(enMain && enMain.parentNode) enMain.parentNode.removeChild(enMain);
+      document.title=STATIC_ZH.title;
+      var banner=document.querySelector('.static-banner'); if(banner) banner.textContent=STATIC_ZH.banner;
+      var brand=document.querySelector('.brand-text'); if(brand) brand.innerHTML=STATIC_ZH.brandHtml;
+      var meta=document.querySelectorAll('.top-meta > div'); if(meta[0]) meta[0].textContent=STATIC_ZH.meta0; if(meta[1]) meta[1].textContent=STATIC_ZH.meta1;
+      var tab=document.querySelector('.page-tabs .page-tab'); if(tab) tab.textContent=STATIC_ZH.tab;
+      var footer=document.querySelector('footer.footer'); if(footer) footer.textContent=STATIC_ZH.footer;
+    }
     document.querySelectorAll('[data-static-zh]').forEach(function(el){
       el.textContent = en ? (el.getAttribute('data-static-en')||el.textContent) : (el.getAttribute('data-static-zh')||el.textContent);
     });

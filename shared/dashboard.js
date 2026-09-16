@@ -18,6 +18,13 @@
   function L(zh) { return I18N ? I18N.label(zh) : zh; }
   function Sent(zh) { return I18N ? I18N.sentiment(zh) : zh; }
   function isEn() { return !!(I18N && I18N.isEn()); }
+  function enSafe(value, fallback) {
+    if (!isEn()) return value == null ? '' : String(value);
+    var clean = String(value == null ? '' : value)
+      .replace(/[\u4e00-\u9fff]+/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+    return clean || fallback || '';
+  }
   function livePersona() {
     var base = (DATA.personas && (DATA.personas[personaId] || DATA.personas.head)) || {};
     return I18N ? I18N.persona(personaId, base) : base;
@@ -121,6 +128,7 @@
     var persona = livePersona();
     setText(byId('personaTitle'), persona.title || '');
     setText(byId('personaAudience'), persona.audience || '');
+    document.title = (persona.title || '') + ' · ' + (isEn() ? (meta.title_en || 'HSBC Hong Kong Commercial Banking') : (meta.title || '汇丰香港商业银行'));
     var upd = byId('updatedAt');
     if (upd) setText(upd, t('updated') + ' ' + (meta.updated_at_display || ''));
     $$('.persona-nav a').forEach(function (a) {
@@ -302,14 +310,16 @@
       '<th>' + t('comp.org') + '</th><th>' + t('comp.sov') + '</th><th>' + t('comp.lean') + '</th><th>' + t('comp.note') + '</th></tr></thead><tbody>';
     rows.forEach(function (c) {
       var cls = c.name === '汇丰' ? 'hsbc' : '';
+      var compName = isEn() ? (c.name_en || L(c.name)) : c.name;
+      var compNote = isEn() ? (c.note_en || (I18N ? I18N.compNote(c.note) : c.note)) : c.note;
       var badge = (c.placeholder && c.placeholder !== false && ((DATA.kpis_clean||{}).placeholder_count||0) > 0) ? ' <span class="pill demo">' + t('badge.demo') + '</span>' : '';
-      var sov = Number(c.sov) || 0;
-      html += '<tr class="' + cls + '"><td>' + esc(L(c.name)) + badge + '</td>' +
+      var sov = Number(c.sov != null ? c.sov : c.share_pct) || 0;
+      html += '<tr class="' + cls + '"><td>' + esc(compName) + badge + '</td>' +
         '<td><div class="bar-track" style="display:inline-block;width:80px;vertical-align:middle;margin-right:6px">' +
         '<div class="bar-fill' + (c.name === '汇丰' ? ' neg' : '') + '" style="width:' + sov + '%"></div></div>' +
         sov + '%</td>' +
         '<td><span class="lean-pill ' + esc(c.sentiment_lean) + '">' + leanZh(c.sentiment_lean) + '</span></td>' +
-        '<td>' + esc((I18N ? I18N.compNote(c.note) : c.note) || '') + '</td></tr>';
+        '<td>' + esc(compNote || '') + '</td></tr>';
     });
     html += '</tbody></table>';
     setHTML(box, html);
@@ -344,11 +354,16 @@
   /* ---------- voice / segment mix ---------- */
   function renderMix() {
     var vm = DATA.voice_mix || {};
-    var total = (vm['真实商业相关'] || 0) + (vm['中介/企服'] || 0) + (vm['个人户噪声'] || 0) || 1;
-    var colors = { '真实商业相关': '#1e1e1e', '中介/企服': '#DB0011', '个人户噪声': '#999' };
+    var mixKeys = Object.keys(vm).filter(function (k) {
+      if (k === '商业真实' && vm['真实商业相关'] != null) return false;
+      if (k === '中介' && vm['中介/企服'] != null) return false;
+      return true;
+    });
+    var total = mixKeys.reduce(function (sum, k) { return sum + (Number(vm[k]) || 0); }, 0) || 1;
+    var colors = { '真实商业相关': '#1e1e1e', '中介/企服': '#DB0011', '个人户噪声': '#999', '其他来源': '#666', '商业真实': '#1e1e1e', '中介': '#DB0011' };
     var bar = byId('voiceMixBar');
     if (bar) {
-      setHTML(bar, Object.keys(vm).map(function (k) {
+      setHTML(bar, mixKeys.map(function (k) {
         var pct = ((vm[k] / total) * 100).toFixed(1);
         return '<div class="mix-seg" style="width:' + pct + '%;background:' + (colors[k] || '#ccc') + '" title="' + esc(L(k)) + ' ' + vm[k] + '">' +
           (Number(pct) > 12 ? pct + '%' : '') + '</div>';
@@ -356,7 +371,7 @@
     }
     var leg = byId('voiceMixLegend');
     if (leg) {
-      setHTML(leg, Object.keys(vm).map(function (k) {
+      setHTML(leg, mixKeys.map(function (k) {
         return '<span><i style="background:' + (colors[k] || '#ccc') + '"></i>' + esc(L(k)) + ' ' + vm[k] + '</span>';
       }).join(''));
     }
@@ -477,7 +492,77 @@
     });
   }
 
+  var coverModalBound = false;
+  function ensureFeedChrome() {
+    var table = $('.post-table');
+    if (table) {
+      var coverHead = $('.col-cover', table);
+      if (coverHead) {
+        coverHead.removeAttribute('aria-hidden');
+        coverHead.setAttribute('data-i18n', 'table.view');
+        coverHead.textContent = t('table.view');
+      }
+      var row = $('thead tr', table);
+      if (row && !$('.col-open', row)) {
+        var th = document.createElement('th');
+        th.className = 'col-open';
+        th.setAttribute('data-i18n', 'table.open');
+        th.textContent = t('table.open');
+        row.appendChild(th);
+      } else if (row) {
+        var oh = $('.col-open', row); if (oh) oh.textContent = t('table.open');
+      }
+    }
+    var modal = byId('coverModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'coverModal';
+      modal.className = 'cover-modal';
+      modal.setAttribute('aria-hidden', 'true');
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.innerHTML = '<div class="cover-modal-panel" role="document">' +
+        '<div class="cover-modal-head"><div><div class="cover-modal-kicker"></div><h2 id="coverModalTitle"></h2></div>' +
+        '<button type="button" class="cover-modal-close"></button></div>' +
+        '<div class="cover-modal-body"><img id="coverModalImage" alt="" referrerpolicy="no-referrer"/>' +
+        '<p id="coverModalStatus" class="card-muted"></p></div></div>';
+      document.body.appendChild(modal);
+    }
+    var kicker = $('.cover-modal-kicker', modal); if (kicker) kicker.textContent = t('modal.cover');
+    var close = $('.cover-modal-close', modal); if (close) { close.textContent = t('modal.close'); close.setAttribute('aria-label', t('modal.close')); }
+    if (!coverModalBound) {
+      document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('.cover-view[data-cover]') : null;
+        if (btn) { e.preventDefault(); openCover(btn.getAttribute('data-cover'), btn.getAttribute('data-title') || ''); return; }
+        if (e.target && (e.target.id === 'coverModal' || (e.target.closest && e.target.closest('.cover-modal-close')))) closeCover();
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCover(); });
+      coverModalBound = true;
+    }
+  }
+  function openCover(url, title) {
+    if (!url) return;
+    ensureFeedChrome();
+    var modal = byId('coverModal'), img = byId('coverModalImage'), status = byId('coverModalStatus');
+    if (!modal || !img) return;
+    setText(byId('coverModalTitle'), title || t('modal.cover'));
+    if (status) { status.textContent = ''; status.style.display = 'none'; }
+    img.style.display = 'block';
+    img.onload = function () { img.style.display = 'block'; if (status) status.style.display = 'none'; };
+    img.onerror = function () { img.style.display = 'none'; if (status) { status.textContent = t('modal.image_unavailable'); status.style.display = 'block'; } };
+    img.src = url;
+    modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    var close = $('.cover-modal-close', modal); if (close) close.focus();
+  }
+  function closeCover() {
+    var modal = byId('coverModal'); if (!modal) return;
+    modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
   function renderFeed() {
+    ensureFeedChrome();
     var posts = filterPosts(filterState);
     var countEl = byId('filterCount');
     var total = (DATA.posts || []).length;
@@ -486,7 +571,7 @@
     var tbody = byId('postBody');
     if (!tbody) return;
     if (!posts.length) {
-      setHTML(tbody, '<tr><td colspan="7" class="card-muted">' + t('empty.posts') + '</td></tr>');
+      setHTML(tbody, '<tr><td colspan="8" class="card-muted">' + t('empty.posts') + '</td></tr>');
       return;
     }
     setHTML(tbody, posts.slice(0, 100).map(function (p) {
@@ -500,19 +585,20 @@
       var comps = (p.competitors && p.competitors.length) ? p.competitors.map(function (c) { return L(c); }).join(isEn() ? ', ' : '、') : '—';
       var noteId = p.note_id || '';
       var postUrl = p.url || (noteId ? ('https://www.xiaohongshu.com/explore/' + noteId) : '');
+      var rawTitle = (isEn() ? p.title_en : p.title) || (isEn() ? '' : p.title_en) || t('no_title');
+      var rawSummary = (isEn() ? p.summary_en : p.summary) || (isEn() ? '' : p.summary_en) || '';
+      var title = isEn() ? enSafe(rawTitle, 'Xiaohongshu commercial banking post') : rawTitle;
+      var summary = isEn() ? enSafe(rawSummary, '') : rawSummary;
       var thumb = p.cover_url
-        ? ('<img class="thumb" src="' + esc(p.cover_url) + '" alt="" loading="lazy" referrerpolicy="no-referrer"/>')
-        : '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#bbb">—</div>';
+        ? ('<button type="button" class="cover-view" data-cover="' + esc(p.cover_url) + '" data-title="' + esc(title) + '" aria-label="' + esc(t('feed.view_cover') + ': ' + title) + '"><img class="thumb" src="' + esc(p.cover_url) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'image-failed\');this.style.display=\'none\'"/><span>' + t('table.view') + '</span></button>')
+        : '<span class="cover-missing" aria-label="' + esc(t('modal.image_unavailable')) + '">—</span>';
       var openL = postUrl
-        ? ('<a class="open-post" href="' + esc(postUrl) + '" target="_blank" rel="noopener noreferrer">' + t('feed.open_post') + '</a>')
-        : '';
-      var title = (isEn() ? (p.title_en || p.title) : (p.title || p.title_en)) || t('no_title');
-      var summary = (isEn() ? (p.summary_en || p.summary) : (p.summary || p.summary_en)) || '';
+        ? ('<a class="open-post action-link" href="' + esc(postUrl) + '" target="_blank" rel="noopener noreferrer">' + t('feed.open_post') + '</a>')
+        : '<span class="open-disabled">—</span>';
       return '<tr>' +
         '<td class="col-cover">' + thumb + '</td>' +
         '<td class="col-title"><div class="title">' + esc(title) + '</div>' +
         '<div class="summary">' + esc(summary) + '</div>' +
-        openL +
         (noteId ? '<div class="card-muted" style="margin-top:4px">' + esc(noteId) + '</div>' : '') +
         '</td>' +
         '<td class="col-sent"><span class="pill ' + esc(p.sentiment) + '">' + esc(Sent(p.sentiment)) + '</span></td>' +
@@ -520,6 +606,7 @@
         '<td class="col-author">' + esc(L(p.author_type) || '—') + '<div class="card-muted">' + esc(L(p.segment) || '') + '</div></td>' +
         '<td class="col-src">' + src + '<div class="card-muted">' + esc(p.published_at || '') + '</div></td>' +
         '<td class="col-comp card-muted">' + esc(comps) + '</td>' +
+        '<td class="col-open">' + openL + '</td>' +
         '</tr>';
     }).join(''));
   }

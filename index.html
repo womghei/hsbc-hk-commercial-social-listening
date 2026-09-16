@@ -120,7 +120,7 @@
       var id=href.replace('.html','');
       var p=I.persona(id, personas[id]||{});
       var h2=a.querySelector('h2'); if(h2&&p.title) h2.textContent=p.title;
-      var tag=a.querySelector('.pc-tag'); if(tag&&p.tagline) tag.textContent=p.tagline;
+      var tag=a.querySelector('.pc-tag'); if(tag&&(p.one_liner||p.tagline)) tag.textContent=p.one_liner||p.tagline;
     });
 
     // Data-driven hub analysis (exec / overview / clinical)

@@ -536,3 +536,28 @@ html[data-lang="en"] .badge-demo { letter-spacing: 0; }
   min-width: 0;
   overflow: hidden;
 }
+
+
+/* Post actions and cover lightbox */
+.post-table .col-cover { width: 76px; text-align: center; }
+.post-table .col-open { width: 92px; min-width: 92px; }
+.cover-view { border: 0; padding: 0; background: transparent; color: #DB0011; cursor: pointer; font: inherit; }
+.cover-view .thumb { margin: 0 auto; }
+.cover-view span { display: block; margin-top: 4px; font-size: .68rem; font-weight: 600; }
+.cover-view:hover span, .cover-view:focus-visible span { text-decoration: underline; }
+.cover-view.image-failed { cursor: default; color: #888; }
+.cover-view.image-failed span { text-decoration: none; }
+.cover-missing, .open-disabled { color: #aaa; }
+.post-table .col-open .action-link { margin-top: 0; white-space: nowrap; }
+.cover-modal { position: fixed; inset: 0; z-index: 10000; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.72); }
+.cover-modal.open { display: flex; }
+.cover-modal-panel { width: min(900px, 96vw); max-height: 94vh; overflow: auto; background: #fff; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.cover-modal-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 16px 18px; background: #fff; border-bottom: 1px solid #ddd; }
+.cover-modal-kicker { margin-bottom: 4px; color: #666; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.cover-modal-head h2 { margin: 0; font-size: 1rem; line-height: 1.4; }
+.cover-modal-close { flex: 0 0 auto; border: 1px solid #bbb; border-radius: 4px; padding: 7px 12px; background: #fff; cursor: pointer; font-weight: 600; }
+.cover-modal-close:hover { border-color: #DB0011; color: #DB0011; }
+.cover-modal-body { min-height: 180px; padding: 18px; text-align: center; }
+.cover-modal-body img { display: block; max-width: 100%; max-height: 72vh; width: auto; height: auto; margin: 0 auto; object-fit: contain; }
+body.modal-open { overflow: hidden; }
+@media (max-width: 640px) { .cover-modal { padding: 8px; } .cover-modal-panel { max-height: 98vh; } }
