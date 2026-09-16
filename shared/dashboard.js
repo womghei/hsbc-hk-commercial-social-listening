@@ -105,6 +105,17 @@
   }
 
   /* ---------- header ---------- */
+  
+  function paintHubAnalysisMini() {
+    var ha = (DATA && DATA.hub_analysis) || {};
+    if (!ha || !ha.symptom_zh) return;
+    var en = isEn();
+    var box = byId('personaClinical');
+    if (box) box.style.display = 'grid';
+    var s = byId('personaSymptom'); if (s) s.textContent = en ? (ha.symptom_en || '') : (ha.symptom_zh || '');
+    var tr = byId('personaTreatment'); if (tr) tr.textContent = en ? (ha.treatment_en || '') : (ha.treatment_zh || '');
+  }
+
   function renderHeader() {
     var meta = DATA.meta || {};
     var persona = livePersona();
@@ -115,6 +126,7 @@
     $$('.persona-nav a').forEach(function (a) {
       a.classList.toggle('active', a.getAttribute('data-id') === personaId);
     });
+    paintHubAnalysisMini();
   }
 
   /* ---------- KPI ---------- */
@@ -147,6 +159,7 @@
       if (v == null && def.key === 'net_sentiment') v = 0;
       if (v == null) return;
       /* persona-specific extras (placeholder/hot theme) only when highlighted */
+      if (def.key === 'placeholder_count' && !(kpis.placeholder_count > 0)) return;
       if ((def.key === 'placeholder_count' || def.key === 'hot_theme_count') && hi.indexOf(def.key) < 0) return;
       cards.push(
         '<div class="kpi' + (def.cls ? ' ' + def.cls : '') + (hi.indexOf(def.key) >= 0 ? ' highlight' : '') + '">' +
@@ -252,10 +265,13 @@
       cy += ((h * 3) % 7) - 3;
       cx = Math.max(6, Math.min(94, cx));
       cy = Math.max(8, Math.min(92, cy));
+      var wtxt = L(w.text_en || w.text || '');
+      if (isEn() && /[\u4e00-\u9fff]/.test(wtxt)) return; /* skip untranslated CJK in EN */
+      if (!wtxt) return;
       parts.push(
         '<span style="left:' + cx.toFixed(1) + '%;top:' + cy.toFixed(1) + '%;font-size:' + size +
         'px;color:' + color + ';opacity:' + (0.55 + ratio * 0.45).toFixed(2) +
-        '" title="' + esc(w.text) + ' · ' + t('weight') + ' ' + esc(w.weight) + '">' + esc(w.text) + '</span>'
+        '" title="' + esc(wtxt) + ' · ' + t('weight') + ' ' + esc(w.weight) + '">' + esc(wtxt) + '</span>'
       );
     });
     setHTML(box, parts.join(''));
@@ -286,9 +302,9 @@
       '<th>' + t('comp.org') + '</th><th>' + t('comp.sov') + '</th><th>' + t('comp.lean') + '</th><th>' + t('comp.note') + '</th></tr></thead><tbody>';
     rows.forEach(function (c) {
       var cls = c.name === '汇丰' ? 'hsbc' : '';
-      var badge = c.placeholder ? ' <span class="pill demo">' + t('badge.demo') + '</span>' : '';
+      var badge = (c.placeholder && c.placeholder !== false && ((DATA.kpis_clean||{}).placeholder_count||0) > 0) ? ' <span class="pill demo">' + t('badge.demo') + '</span>' : '';
       var sov = Number(c.sov) || 0;
-      html += '<tr class="' + cls + '"><td>' + esc(c.name) + badge + '</td>' +
+      html += '<tr class="' + cls + '"><td>' + esc(L(c.name)) + badge + '</td>' +
         '<td><div class="bar-track" style="display:inline-block;width:80px;vertical-align:middle;margin-right:6px">' +
         '<div class="bar-fill' + (c.name === '汇丰' ? ' neg' : '') + '" style="width:' + sov + '%"></div></div>' +
         sov + '%</td>' +
@@ -403,6 +419,12 @@
     if (fPers) {
       fPers.checked = filterState.hidePersonalNoise;
       if (!filtersBound) fPers.addEventListener('change', function () { filterState.hidePersonalNoise = !!fPers.checked; renderFeed(); });
+      var hasPers = (DATA.posts || []).some(function (p) { return p.is_personal_noise; });
+      if (!hasPers) {
+        var persRow = fPers.closest ? (fPers.closest('label') || fPers.closest('.filter-item') || fPers.parentElement) : fPers.parentElement;
+        if (persRow) persRow.style.display = 'none';
+        filterState.hidePersonalNoise = false;
+      }
     }
     if (fSent) {
       setHTML(fSent, '<option value="">' + t('filter.all_sent') + '</option><option value="正面">' + t('sent.pos') + '</option><option value="负面">' + t('sent.neg') + '</option><option value="中性">' + t('sent.neu') + '</option>');
@@ -464,34 +486,40 @@
     var tbody = byId('postBody');
     if (!tbody) return;
     if (!posts.length) {
-      setHTML(tbody, '<tr><td colspan="6" class="card-muted">' + t('empty.posts') + '</td></tr>');
+      setHTML(tbody, '<tr><td colspan="7" class="card-muted">' + t('empty.posts') + '</td></tr>');
       return;
     }
     setHTML(tbody, posts.slice(0, 100).map(function (p) {
-      var demo = p.is_placeholder ? '<span class="pill demo">' + t('badge.demo_short') + '</span> ' : '';
       var srcStatus = p.source_status || '';
-      var srcLabel = (isEn() ? (p.source_label_en || p.source_label || '') : (p.source_label || '')) || '';
       var src;
-      if (srcStatus === 'xhs_public' || srcStatus === 'xhs_sample_api') {
-        src = '<span class="pill src">' + (isEn() ? 'XHS sample' : '小红书样本') + '</span>';
-      } else if (srcStatus === 'web_informed') {
-        src = '<span class="pill src">' + (isEn() ? 'Web Informed' : 'Web Informed') + '</span>';
-      } else if (p.is_placeholder || srcStatus === 'placeholder') {
-        src = '<span class="pill demo">' + t('badge.placeholder') + '</span>';
+      if (srcStatus === 'web_informed') {
+        src = '<span class="pill src">Web Informed</span>';
       } else {
-        src = srcLabel ? '<span class="pill src">' + esc(srcLabel) + '</span>' : '';
+        src = '<span class="pill src">' + (isEn() ? 'Xiaohongshu' : '小红书') + '</span>';
       }
-      var comps = (p.competitors && p.competitors.length) ? p.competitors.join('、') : '—';
+      var comps = (p.competitors && p.competitors.length) ? p.competitors.map(function (c) { return L(c); }).join(isEn() ? ', ' : '、') : '—';
+      var noteId = p.note_id || '';
+      var postUrl = p.url || (noteId ? ('https://www.xiaohongshu.com/explore/' + noteId) : '');
+      var thumb = p.cover_url
+        ? ('<img class="thumb" src="' + esc(p.cover_url) + '" alt="" loading="lazy" referrerpolicy="no-referrer"/>')
+        : '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#bbb">—</div>';
+      var openL = postUrl
+        ? ('<a class="open-post" href="' + esc(postUrl) + '" target="_blank" rel="noopener noreferrer">' + t('feed.open_post') + '</a>')
+        : '';
+      var title = (isEn() ? (p.title_en || p.title) : (p.title || p.title_en)) || t('no_title');
+      var summary = (isEn() ? (p.summary_en || p.summary) : (p.summary || p.summary_en)) || '';
       return '<tr>' +
-        '<td><div class="title">' + demo + esc((isEn() ? (p.title_en || p.title) : (p.title || p.title_en)) || t('no_title')) + '</div>' +
-        '<div class="summary">' + esc((isEn() ? (p.summary_en || p.summary) : (p.summary || p.summary_en)) || '') + '</div>' +
-        (isEn() ? '<div class="card-muted" style="margin-top:4px;font-style:italic">' + t('feed.orig_note') + '</div>' : '') +
-        '<div class="card-muted" style="margin-top:4px">' + esc(p.id || '') + '</div></td>' +
-        '<td><span class="pill ' + esc(p.sentiment) + '">' + esc(Sent(p.sentiment)) + '</span></td>' +
-        '<td>' + esc(L(p.category) || '—') + '</td>' +
-        '<td>' + esc(L(p.author_type) || '—') + '<div class="card-muted">' + esc(L(p.segment) || '') + '</div></td>' +
-        '<td>' + src + '<div class="card-muted">' + esc(p.published_at || '') + '</div></td>' +
-        '<td class="card-muted">' + esc(comps) + '</td>' +
+        '<td class="col-cover">' + thumb + '</td>' +
+        '<td class="col-title"><div class="title">' + esc(title) + '</div>' +
+        '<div class="summary">' + esc(summary) + '</div>' +
+        openL +
+        (noteId ? '<div class="card-muted" style="margin-top:4px">' + esc(noteId) + '</div>' : '') +
+        '</td>' +
+        '<td class="col-sent"><span class="pill ' + esc(p.sentiment) + '">' + esc(Sent(p.sentiment)) + '</span></td>' +
+        '<td class="col-cat">' + esc(L(p.category) || '—') + '</td>' +
+        '<td class="col-author">' + esc(L(p.author_type) || '—') + '<div class="card-muted">' + esc(L(p.segment) || '') + '</div></td>' +
+        '<td class="col-src">' + src + '<div class="card-muted">' + esc(p.published_at || '') + '</div></td>' +
+        '<td class="col-comp card-muted">' + esc(comps) + '</td>' +
         '</tr>';
     }).join(''));
   }

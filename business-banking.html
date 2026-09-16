@@ -124,10 +124,10 @@
     </div>
 
     <div class="card" style="padding:0;overflow:auto">
-      <table class="post-table">
+      <div class="table-scroll"><table class="post-table">
         <thead>
           <tr>
-            <th style="min-width:280px" data-i18n="table.title">标题 / 摘要</th>
+            <th class="col-cover" aria-hidden="true"></th><th class="col-title" data-i18n="table.title">标题 / 摘要</th>
             <th data-i18n="table.sentiment">情感</th>
             <th data-i18n="table.category">分类</th>
             <th data-i18n="table.author">作者类型</th>
@@ -136,7 +136,7 @@
           </tr>
         </thead>
         <tbody id="postBody"></tbody>
-      </table>
+      </table></div>
     </div>
     <p class="card-muted" style="margin-top:10px" data-i18n="feed.note">不编造小红书外链；小红书样本 条目仅展示 note id。占位帖标有「示意」。</p>
   </section>

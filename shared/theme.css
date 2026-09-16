@@ -439,3 +439,100 @@ img { max-width: 100%; }
 .hub-hero .lang-toggle { box-shadow: 0 1px 2px rgba(0,0,0,.06); }
 html[data-lang="en"] .badge-demo { letter-spacing: 0; }
 
+/* --- post table / theme browser readability (2026-09-16) --- */
+.table-scroll, .feed-wrap, .post-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+}
+.post-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8rem;
+  table-layout: fixed;
+  background: #fff;
+}
+.post-table th, .post-table td {
+  padding: 10px 12px;
+  vertical-align: top;
+  border-bottom: 1px solid #eee;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.post-table th {
+  position: sticky;
+  top: 0;
+  background: #f7f7f7;
+  z-index: 1;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #666;
+  white-space: nowrap;
+}
+.post-table .col-cover { width: 64px; }
+.post-table .col-title { width: 34%; }
+.post-table .col-sent { width: 72px; }
+.post-table .col-cat { width: 12%; }
+.post-table .col-author { width: 12%; }
+.post-table .col-src { width: 14%; }
+.post-table .col-comp { width: 14%; }
+.post-table .title {
+  font-weight: 600;
+  color: var(--hsbc-black, #1e1e1e);
+  line-height: 1.35;
+  white-space: normal;
+}
+.post-table .summary {
+  color: var(--hsbc-grey-66, #666);
+  font-size: 0.74rem;
+  margin-top: 4px;
+  line-height: 1.4;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.post-table .thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #f0f0f0;
+  display: block;
+}
+.post-table .open-post {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #DB0011;
+  text-decoration: none;
+}
+.post-table .open-post:hover { text-decoration: underline; }
+.topic-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.topic-chip {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  line-height: 1.2;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.topic-chip:hover, .topic-chip.active {
+  border-color: #DB0011;
+  color: #DB0011;
+  background: #fff5f5;
+}
+#themeBrowser, .theme-browser, .topics-panel {
+  min-width: 0;
+  overflow: hidden;
+}

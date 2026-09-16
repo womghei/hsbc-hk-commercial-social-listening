@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>汇丰香港商业银行 · 社交聆听看板套件</title>
+<title data-i18n="hub.title">汇丰香港商业银行 · 社交聆听看板套件</title>
 <link rel="stylesheet" href="shared/theme.css"/>
 </head>
 <body>
@@ -19,7 +19,7 @@
     </div>
     <h1 data-i18n="hub.h1">汇丰香港商业银行 · 多角色社交聆听看板</h1>
     <p data-i18n="hub.p">面向香港管理层与各条线负责人的多页面看板：第 1 页看数字与风险机会，第 2 页看帖子明细，第 3 页看口径。主题对齐 business.hsbc.com.hk 红白灰商务风格。</p>
-    <p style="margin-top:12px;font-size:0.8rem" data-i18n="hub.meta">数据：小红书公开样本 70 条 + 占位 17 条 · 更新 2026-09-11 13:15 HKT</p>
+    <p style="margin-top:12px;font-size:0.8rem" data-i18n="hub.meta">数据：小红书公开内容样本 · 已剔除个人户与占位 · 更新见页脚</p>
     <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
       <a class="btn" href="head.html" data-i18n="hub.open">打开管理层总览</a>
       <a class="btn btn-ghost" href="dashboard-static-overview.html" data-i18n="hub.static">静态快照（无 JS）</a>
@@ -66,14 +66,42 @@
   </a>
 </section>
 
+
+<section class="wrap" style="padding-top:0" id="hubAnalysis">
+  <div class="card" style="margin-bottom:16px">
+    <h3 data-i18n="hub.overview_h">总体综述</h3>
+    <p id="hubOverview" class="hub-overview" style="font-size:0.9rem;line-height:1.55;color:#333;margin:0"></p>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <h3 data-i18n="hub.clinical_h">管理层诊疗模型 · 症状 / 诊断 / 处置 / 随访</h3>
+    <div class="clinical-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:10px">
+      <div class="clinical-card" style="border:1px solid #eee;border-radius:8px;padding:12px;background:#fafafa">
+        <div class="flabel" style="font-size:0.7rem;font-weight:700;color:#DB0011;letter-spacing:0.04em" data-i18n="hub.symptom_h">症状</div>
+        <p id="hubSymptom" style="font-size:0.82rem;line-height:1.45;margin:8px 0 0;color:#222"></p>
+      </div>
+      <div class="clinical-card" style="border:1px solid #eee;border-radius:8px;padding:12px;background:#fafafa">
+        <div class="flabel" style="font-size:0.7rem;font-weight:700;color:#DB0011;letter-spacing:0.04em" data-i18n="hub.diagnosis_h">诊断</div>
+        <p id="hubDiagnosis" style="font-size:0.82rem;line-height:1.45;margin:8px 0 0;color:#222"></p>
+      </div>
+      <div class="clinical-card" style="border:1px solid #eee;border-radius:8px;padding:12px;background:#fafafa">
+        <div class="flabel" style="font-size:0.7rem;font-weight:700;color:#0a7a3e;letter-spacing:0.04em" data-i18n="hub.treatment_h">处置</div>
+        <p id="hubTreatment" style="font-size:0.82rem;line-height:1.45;margin:8px 0 0;color:#222"></p>
+      </div>
+      <div class="clinical-card" style="border:1px solid #eee;border-radius:8px;padding:12px;background:#fafafa">
+        <div class="flabel" style="font-size:0.7rem;font-weight:700;color:#333;letter-spacing:0.04em" data-i18n="hub.followup_h">随访</div>
+        <p id="hubFollowup" style="font-size:0.82rem;line-height:1.45;margin:8px 0 0;color:#222"></p>
+      </div>
+    </div>
+  </div>
+</section>
 <section class="wrap" style="padding-top:0">
   <div class="card">
     <h3 data-i18n="hub.about">套件说明</h3>
     <ul style="margin:0;padding-left:1.2em;font-size:0.85rem;color:#333">
-      <li>同一数据引擎（<code>shared/data.js</code>），各角色强调重点与文案不同。</li>
-      <li>第 1 页：KPI、情感环图、词云、主题条、竞品 SOV、风险/机会、声音构成。</li>
-      <li>第 2 页：过滤（中介/个人噪声/情感/分类）+ 帖子表 + 主题浏览器。</li>
-      <li>竞品 SOV 与周趋势标有「示意数据」；不编造小红书 URL。</li>
+      <li data-i18n="hub.about1">同一数据引擎（shared/data.js），各角色强调重点与文案不同。</li>
+      <li data-i18n="hub.about2">第 1 页：KPI、情感环图、词云、主题条、竞品 SOV、风险/机会、声音构成。</li>
+      <li data-i18n="hub.about3">第 2 页：过滤（中介噪声/情感/分类）+ 帖子表 + 主题浏览器。</li>
+      <li data-i18n="hub.about4">竞品 SOV 与周趋势为结构演示；不编造小红书 URL；无占位帖。</li>
     </ul>
   </div>
 </section>
@@ -85,6 +113,7 @@
 (function(){
   var I=window.HSBC_I18N; if(!I) return;
   function paintHub(){
+    I.applyDom(document);
     var personas= (window.HSBC_SL_DATA&&HSBC_SL_DATA.personas)||{};
     document.querySelectorAll('.persona-card[href]').forEach(function(a){
       var href=a.getAttribute('href')||'';
@@ -93,6 +122,27 @@
       var h2=a.querySelector('h2'); if(h2&&p.title) h2.textContent=p.title;
       var tag=a.querySelector('.pc-tag'); if(tag&&p.tagline) tag.textContent=p.tagline;
     });
+
+    // Data-driven hub analysis (exec / overview / clinical)
+    var ha = (window.HSBC_SL_DATA && HSBC_SL_DATA.hub_analysis) || {};
+    var en = I.isEn();
+    function set(id, zhKey, enKey) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var v = en ? (ha[enKey] || ha[zhKey] || '') : (ha[zhKey] || '');
+      el.textContent = v || '';
+    }
+    // hub.p intro = exec summary
+    var intro = document.querySelector('[data-i18n="hub.p"],[data-i18n="hub.p_ms"]');
+    if (intro) {
+      var ex = en ? (ha.exec_summary_en || '') : (ha.exec_summary_zh || '');
+      if (ex) intro.textContent = ex;
+    }
+    set('hubOverview', 'overview_zh', 'overview_en');
+    set('hubSymptom', 'symptom_zh', 'symptom_en');
+    set('hubDiagnosis', 'diagnosis_zh', 'diagnosis_en');
+    set('hubTreatment', 'treatment_zh', 'treatment_en');
+    set('hubFollowup', 'followup_zh', 'followup_en');
   }
   I.onChange(paintHub); paintHub();
 })();
