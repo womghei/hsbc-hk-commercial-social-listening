@@ -67,7 +67,7 @@ def _load_box_card_secrets() -> None:
 
 HKT = timezone(timedelta(hours=8))
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
-DEEPSEEK_MODEL = "deepseek-chat"
+DEEPSEEK_MODEL = "deepseek-flash"
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +184,7 @@ def search_keywords(
 # ---------------------------------------------------------------------------
 # DeepSeek analysis
 # ---------------------------------------------------------------------------
-def build_deepseek_prompt(keywords: list[str], posts: list[dict], max_posts: int = 40) -> str:
+def build_deepseek_prompt(keywords: list[str], posts: list[dict], max_posts: int = 40, lang: str = "zh") -> str:
     lines = []
     for i, p in enumerate(posts[:max_posts], 1):
         title = (p.get("title") or "")[:80]
@@ -192,7 +192,27 @@ def build_deepseek_prompt(keywords: list[str], posts: list[dict], max_posts: int
         likes = (p.get("engagement") or {}).get("likes", 0)
         lines.append(f"{i}. 【{title}】 {summary} (赞{likes})")
     body = "\n".join(lines) if lines else "（无帖子）"
-    return f"""你是汇丰香港商业银行社交聆听分析师。请基于以下小红书公开笔记样本（关键词：{', '.join(keywords)}），用简体中文输出结构化分析。
+    kw = ", ".join(keywords)
+    if lang == "en":
+        return f"""You are a social listening analyst for HSBC Commercial Banking Hong Kong.
+Based on the Xiaohongshu public notes sample (keywords: {kw}), write a structured analysis in English Markdown.
+
+Required section headings (keep exactly):
+## Executive summary
+## Medical model
+### Symptom
+### Diagnosis
+### Treatment
+### Follow-up
+## Themes and narratives
+## Risks
+## Opportunities
+## Suggested monitoring keywords
+
+Sample (title/summary, truncated):
+{body}
+"""
+    return f"""你是汇丰香港商业银行社交聆听分析师。请基于以下小红书公开笔记样本（关键词：{kw}），用简体中文输出结构化分析。
 
 要求输出 Markdown，包含以下章节（标题必须保留）：
 ## 执行摘要
@@ -211,11 +231,11 @@ def build_deepseek_prompt(keywords: list[str], posts: list[dict], max_posts: int
 """
 
 
-def call_deepseek(api_key: str, prompt: str, timeout: int = 120) -> str:
+def call_deepseek(api_key: str, prompt: str, timeout: int = 120, system: str | None = None) -> str:
     payload = {
         "model": DEEPSEEK_MODEL,
         "messages": [
-            {"role": "system", "content": "你是专业的商业银行社交聆听分析助手，回答使用简体中文 Markdown。"},
+            {"role": "system", "content": system or "你是专业的商业银行社交聆听分析助手，回答使用简体中文 Markdown。"},
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.4,
@@ -347,11 +367,14 @@ def render_analysis_html(
     keywords: list[str],
     created_at: str,
     posts: list[dict],
-    analysis_md: str,
+    analysis_zh: str,
+    analysis_en: str,
     deepseek_used: bool,
     slug: str,
+    model: str = DEEPSEEK_MODEL,
 ) -> str:
-    analysis_html = md_to_simple_html(analysis_md)
+    analysis_zh_html = md_to_simple_html(analysis_zh)
+    analysis_en_html = md_to_simple_html(analysis_en)
     rows = []
     for p in posts:
         cover = p.get("cover_url") or ""
@@ -384,7 +407,7 @@ def render_analysis_html(
         )
     rows_html = "\n".join(rows) if rows else '<tr><td colspan="3" style="color:#999">暂无帖子</td></tr>'
     ds_badge = (
-        '<span style="font-size:0.65rem;background:#e6f5ec;color:#0a7a3e;padding:2px 8px;border-radius:999px;margin-left:8px">DeepSeek</span>'
+        f'<span style="font-size:0.65rem;background:#e6f5ec;color:#0a7a3e;padding:2px 8px;border-radius:999px;margin-left:8px">DeepSeek · {escape(model)}</span>'
         if deepseek_used
         else '<span style="font-size:0.65rem;background:#fff3cd;color:#856404;padding:2px 8px;border-radius:999px;margin-left:8px">待 DeepSeek</span>'
     )
@@ -405,6 +428,11 @@ def render_analysis_html(
   .post-table {{ width:100%; border-collapse:collapse; font-size:0.82rem; }}
   .post-table th {{ text-align:left; font-size:0.7rem; color:#666; padding:8px 6px; border-bottom:2px solid #e0e0e0; }}
   .post-table td {{ padding:10px 6px; border-bottom:1px solid #eee; vertical-align:top; }}
+  .lang-toggle {{ display:inline-flex; gap:0; border:1px solid #ddd; border-radius:4px; overflow:hidden; }}
+  .lang-toggle button {{ border:0; background:#fff; padding:6px 14px; font-size:0.78rem; cursor:pointer; color:#555; }}
+  .lang-toggle button.active {{ background:#DB0011; color:#fff; }}
+  .analysis-pane {{ display:none; }}
+  .analysis-pane.active {{ display:block; }}
 </style>
 </head>
 <body>
@@ -418,7 +446,7 @@ def render_analysis_html(
     </a>
     <div class="top-meta">
       <div>{escape(created_at)}</div>
-      <div>{len(posts)} 帖 · {escape(kw_str)}</div>
+      <div>{len(posts)} posts · {escape(kw_str)}</div>
     </div>
   </div>
 </header>
@@ -427,25 +455,34 @@ def render_analysis_html(
   <div class="hero-strip">
     <div class="label">SAVED ANALYSIS {ds_badge}</div>
     <p style="font-size:1.1rem;font-weight:700;color:#1e1e1e;margin:0 0 6px">{escape(title)}</p>
-    <p style="margin:0">关键词：{escape(kw_str)} · 帖数 {len(posts)} · 可经 GitHub Pages 永久打开</p>
-    <p style="margin:8px 0 0"><a href="../../index.html">← 返回关键词探索器</a>
+    <p style="margin:0">关键词：{escape(kw_str)} · {len(posts)} posts · reopenable on GitHub Pages</p>
+    <p style="margin:8px 0 0"><a href="../../index.html">← Back to Keyword Explorer</a>
       · <a href="../index.json">catalog JSON</a>
       · <a href="data.json">data.json</a></p>
   </div>
 
   <div class="card" style="margin-bottom:16px">
-    <h3><span class="hex-accent"></span>分析</h3>
-    <div class="analysis-body">
-{analysis_html}
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+      <h3 style="margin:0"><span class="hex-accent"></span>Analysis</h3>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" id="btn-zh" class="active" onclick="showLang('zh')">简体</button>
+        <button type="button" id="btn-en" onclick="showLang('en')">EN</button>
+      </div>
+    </div>
+    <div id="pane-zh" class="analysis-body analysis-pane active">
+{analysis_zh_html}
+    </div>
+    <div id="pane-en" class="analysis-body analysis-pane">
+{analysis_en_html}
     </div>
   </div>
 
   <div class="card">
-    <h3><span class="hex-accent"></span>帖子明细（原标题 · 简体）</h3>
-    <p class="card-muted" style="margin-bottom:12px">封面与「打开小红书」来自公开检索样本；请人工核对中介噪声。</p>
+    <h3><span class="hex-accent"></span>Post details (original 简体 titles)</h3>
+    <p class="card-muted" style="margin-bottom:12px">Covers and Open in XHS from the public search sample; verify intermediary noise manually.</p>
     <div style="overflow-x:auto">
       <table class="post-table">
-        <thead><tr><th style="width:72px">封面</th><th>标题 / 摘要</th><th style="width:110px">操作</th></tr></thead>
+        <thead><tr><th style="width:72px">Cover</th><th>Title / summary</th><th style="width:110px">Action</th></tr></thead>
         <tbody>
 {rows_html}
         </tbody>
@@ -454,7 +491,22 @@ def render_analysis_html(
   </div>
 </section>
 
-<footer class="footer">汇丰银行香港 · 商业银行 · Keyword Explorer v3 · 内部演示 · 第三方 API 样本请人工核对</footer>
+<footer class="footer">HSBC Commercial Banking Hong Kong · Keyword Explorer v3 · Internal demo · third-party API sample — verify manually</footer>
+<script>
+function showLang(lang) {{
+  document.getElementById('pane-zh').classList.toggle('active', lang === 'zh');
+  document.getElementById('pane-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  try {{ localStorage.setItem('hsbc-v3-lang', lang); }} catch (e) {{}}
+}}
+(function () {{
+  try {{
+    const saved = localStorage.getItem('hsbc-v3-lang');
+    if (saved === 'en') showLang('en');
+  }} catch (e) {{}}
+}})();
+</script>
 </body>
 </html>
 """
@@ -540,29 +592,58 @@ def main() -> int:
             seen.add(nid)
     save_seen(seen)
 
-    # DeepSeek or placeholder
+    # DeepSeek bilingual (flash) or placeholder
     deepseek_used = False
-    analysis_md = ""
+    analysis_zh = ""
+    analysis_en = ""
     analysis_json: dict = {}
     if deepseek_key:
-        print("[deepseek] calling chat API…", flush=True)
+        print(f"[deepseek] calling {DEEPSEEK_MODEL} for 简体 + EN…", flush=True)
         try:
-            prompt = build_deepseek_prompt(keywords, all_posts, max_posts=args.max_posts_for_llm)
-            analysis_md = call_deepseek(deepseek_key, prompt)
+            prompt_zh = build_deepseek_prompt(keywords, all_posts, max_posts=args.max_posts_for_llm, lang="zh")
+            analysis_zh = call_deepseek(
+                deepseek_key,
+                prompt_zh,
+                system="你是专业的商业银行社交聆听分析助手，回答使用简体中文 Markdown。",
+            )
+            prompt_en = build_deepseek_prompt(keywords, all_posts, max_posts=args.max_posts_for_llm, lang="en")
+            analysis_en = call_deepseek(
+                deepseek_key,
+                prompt_en,
+                system="You are a professional commercial-banking social listening analyst. Reply in English Markdown.",
+            )
             deepseek_used = True
-            analysis_json = {"source": "deepseek-chat", "markdown": analysis_md}
-            print("[deepseek] ok", flush=True)
+            analysis_json = {
+                "source": f"deepseek-{DEEPSEEK_MODEL}",
+                "model": DEEPSEEK_MODEL,
+                "markdown_zh": analysis_zh,
+                "markdown_en": analysis_en,
+            }
+            print("[deepseek] ok (zh+en)", flush=True)
         except Exception as e:
             print(f"[deepseek] FAILED: {type(e).__name__}: {e}", file=sys.stderr)
-            analysis_md = placeholder_analysis(keywords, len(all_posts))
-            analysis_md = (
-                f"> DeepSeek 调用失败（{type(e).__name__}），已写入占位分析。\n\n" + analysis_md
+            analysis_zh = placeholder_analysis(keywords, len(all_posts))
+            analysis_zh = f"> DeepSeek 调用失败（{type(e).__name__}），已写入占位分析。\n\n" + analysis_zh
+            analysis_en = (
+                f"> DeepSeek call failed ({type(e).__name__}). Placeholder analysis below.\n\n"
+                + placeholder_analysis(keywords, len(all_posts))
             )
-            analysis_json = {"source": "placeholder", "error": type(e).__name__, "markdown": analysis_md}
+            analysis_json = {
+                "source": "placeholder",
+                "error": type(e).__name__,
+                "markdown_zh": analysis_zh,
+                "markdown_en": analysis_en,
+            }
     else:
         print("[deepseek] DEEPSEEK_API_KEY not set — writing placeholder analysis", flush=True)
-        analysis_md = placeholder_analysis(keywords, len(all_posts))
-        analysis_json = {"source": "placeholder", "markdown": analysis_md}
+        analysis_zh = placeholder_analysis(keywords, len(all_posts))
+        analysis_en = analysis_zh
+        analysis_json = {
+            "source": "placeholder",
+            "model": DEEPSEEK_MODEL,
+            "markdown_zh": analysis_zh,
+            "markdown_en": analysis_en,
+        }
 
     created = now_hkt()
     created_iso = created.isoformat()
@@ -580,6 +661,7 @@ def main() -> int:
         "new_post_count": len(new_posts),
         "known_post_count": len(known_posts),
         "deepseek_used": deepseek_used,
+        "deepseek_model": DEEPSEEK_MODEL,
         "note_time": args.note_time,
         "posts": all_posts,
         "analysis": analysis_json,
@@ -592,9 +674,11 @@ def main() -> int:
         keywords=keywords,
         created_at=created_display,
         posts=all_posts,
-        analysis_md=analysis_md,
+        analysis_zh=analysis_zh,
+        analysis_en=analysis_en,
         deepseek_used=deepseek_used,
         slug=slug,
+        model=DEEPSEEK_MODEL,
     )
     (out_dir / "index.html").write_text(html, encoding="utf-8")
 
