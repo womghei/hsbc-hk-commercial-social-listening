@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title data-i18n="v3.title">汇丰香港 · 关键词探索器 v3</title>
+<link rel="stylesheet" href="shared/theme.css"/>
+<style>
+  .v3-form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:14px; }
+  .v3-form-row label { display:block; font-size:0.72rem; font-weight:700; color:#666; margin-bottom:4px; letter-spacing:0.04em; }
+  .v3-form-row input[type=text] {
+    flex:1; min-width:220px; padding:10px 12px; font-size:0.95rem;
+    border:1px solid #e0e0e0; border-radius:2px; font-family:inherit;
+  }
+  .v3-form-row input:focus { outline:2px solid #DB0011; outline-offset:0; border-color:#DB0011; }
+  .v3-status {
+    margin-top:12px; padding:10px 12px; background:#fafafa; border:1px solid #eee;
+    font-size:0.82rem; color:#333; line-height:1.45;
+  }
+  .v3-honest {
+    margin-top:10px; font-size:0.75rem; color:#666; line-height:1.45;
+    border-left:3px solid #DB0011; padding-left:10px;
+  }
+  .analysis-list { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .analysis-item {
+    display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
+    padding:14px 16px; background:#fff; border:1px solid #e0e0e0; box-shadow:0 1px 3px rgba(0,0,0,.06);
+    text-decoration:none; color:inherit;
+  }
+  .analysis-item:hover { border-color:#DB0011; text-decoration:none; }
+  .analysis-item h4 { margin:0 0 4px; font-size:0.95rem; color:#1e1e1e; }
+  .analysis-item .meta { font-size:0.75rem; color:#666; }
+  .analysis-item .kw { font-size:0.72rem; color:#DB0011; margin-top:4px; }
+  .analysis-item .go { font-size:0.8rem; font-weight:700; color:#DB0011; white-space:nowrap; }
+  .empty-lib { font-size:0.85rem; color:#999; padding:16px 0; }
+</style>
+</head>
+<body>
+<header class="hub-hero" style="position:relative">
+  <div style="position:absolute;top:16px;right:24px;z-index:2" id="langToggleHost"></div>
+  <div class="hub-hero-inner">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <span class="brand-mark" style="width:36px;height:36px"></span>
+      <div>
+        <div style="font-size:0.7rem;font-weight:700;color:#DB0011;letter-spacing:0.06em">HSBC COMMERCIAL BANKING · HONG KONG</div>
+        <div style="font-size:0.75rem;color:#666"><span data-i18n="v3.sub">Keyword Explorer · 社交聆听</span></div>
+      </div>
+    </div>
+    <p style="margin:0 0 10px"><a href="../index.html" style="font-size:0.82rem;font-weight:600" data-i18n="v3.back">← 返回 v2 看板套件</a></p>
+    <h1 data-i18n="v3.h1">关键词探索器</h1>
+    <p data-i18n="v3.lead">输入一个或多个关键词（逗号分隔），由安全流水线拉取小红书公开样本并生成可永久打开的分析页。浏览器不持有 API 密钥。</p>
+  </div>
+</header>
+
+<section class="wrap" style="padding-top:0">
+  <div class="card" style="margin-bottom:16px">
+    <h3><span class="hex-accent"></span><span data-i18n="v3.keywords">关键词</span></h3>
+    <form id="kwForm" autocomplete="on">
+      <div class="v3-form-row">
+        <div style="flex:1;min-width:220px">
+          <label for="kwInput" data-i18n="v3.keywords">关键词</label>
+          <input type="text" id="kwInput" name="keywords"
+            data-i18n="v3.keywords_ph" data-i18n-attr="placeholder"
+            placeholder="例如：ODI, 837 号令, 汇丰 公司户"/>
+        </div>
+        <button type="submit" class="btn" id="runBtn">
+          <span data-i18n="v3.run">开始分析</span> / <span data-i18n="v3.run_en">Run analysis</span>
+        </button>
+      </div>
+    </form>
+    <div class="v3-status" id="statusBox" data-i18n="v3.status_idle">分析报告由安全流水线生成后会出现在下方「已保存分析」。本页会记住您最近输入的关键词。</div>
+    <p class="v3-honest" data-i18n="v3.honest">说明：实时检索经安全流水线执行（密钥永不进入浏览器）。本页提供表单记忆与已保存报告库；实际跑数请用 v3/pipeline/run_keyword_analysis.py。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="hex-accent"></span><span data-i18n="v3.library">已保存分析</span></h3>
+    <div id="library" class="analysis-list">
+      <div class="empty-lib" data-i18n="v3.library_empty">暂无已保存分析。运行流水线后将出现在此列表。</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer" data-i18n="v3.footer">汇丰银行香港 · 商业银行 · Keyword Explorer v3 · 主题参考 business.hsbc.com.hk · 内部演示</footer>
+
+<script src="shared/i18n.js"></script>
+<script>
+(function () {
+  var LS_KEY = 'hsbc-v3-last-keywords';
+  var input = document.getElementById('kwInput');
+  var statusBox = document.getElementById('statusBox');
+  var library = document.getElementById('library');
+  var I = window.HSBC_V3_I18N;
+
+  try {
+    var last = localStorage.getItem(LS_KEY);
+    if (last) input.value = last;
+  } catch (e) {}
+
+  function setStatus(keyOrText, isKey) {
+    if (isKey && I) statusBox.textContent = I.t(keyOrText);
+    else statusBox.textContent = keyOrText;
+  }
+
+  function renderLibrary(items) {
+    if (!items || !items.length) {
+      library.innerHTML = '<div class="empty-lib" data-i18n="v3.library_empty"></div>';
+      if (I) I.applyDom(library);
+      return;
+    }
+    var postsLabel = I ? I.t('v3.posts') : '帖';
+    var createdLabel = I ? I.t('v3.created') : '创建';
+    var openLabel = I ? I.t('v3.open') : '打开报告 →';
+    library.innerHTML = items.map(function (it) {
+      var kws = (it.keywords || []).join(' · ');
+      var path = it.path || ('analyses/' + it.slug + '/');
+      var created = (it.created_at || '').replace('T', ' ').slice(0, 16);
+      return (
+        '<a class="analysis-item" href="' + path + '">' +
+          '<div>' +
+            '<h4>' + escapeHtml(it.title || it.slug) + '</h4>' +
+            '<div class="meta">' + createdLabel + ' ' + escapeHtml(created) +
+              ' · ' + (it.post_count != null ? it.post_count : '—') + ' ' + postsLabel + '</div>' +
+            '<div class="kw">' + escapeHtml(kws) + '</div>' +
+          '</div>' +
+          '<span class="go">' + openLabel + '</span>' +
+        '</a>'
+      );
+    }).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  function loadCatalog() {
+    fetch('analyses/index.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : { analyses: [] }; })
+      .then(function (data) {
+        var list = data.analyses || data.items || (Array.isArray(data) ? data : []);
+        renderLibrary(list);
+      })
+      .catch(function () { renderLibrary([]); });
+  }
+
+  document.getElementById('kwForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var raw = (input.value || '').trim();
+    if (!raw) { input.focus(); return; }
+    try { localStorage.setItem(LS_KEY, raw); } catch (err) {}
+
+    // Prefer same-origin /api if present; otherwise honest localStorage + library message
+    setStatus('v3.status_api', true);
+    fetch('/api/keyword-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords: raw.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean) })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('no api');
+      return r.json();
+    }).then(function (data) {
+      setStatus((I && I.isEn() ? 'Pipeline accepted. ' : '流水线已接受。 ') + (data.message || data.path || ''), false);
+      loadCatalog();
+    }).catch(function () {
+      setStatus('v3.status_saved', true);
+    });
+  });
+
+  if (I) {
+    I.onChange(function () {
+      I.applyDom(document);
+      loadCatalog();
+      // restore status idle text if still idle-ish
+    });
+  }
+  loadCatalog();
+})();
+</script>
+</body>
+</html>
