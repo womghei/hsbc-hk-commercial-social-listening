@@ -240,6 +240,8 @@ def call_deepseek(api_key: str, prompt: str, timeout: int = 120, system: str | N
         ],
         "temperature": 0.4,
         "max_tokens": 2500,
+        # Flash returns empty `content` when thinking consumes the budget; disable for analysis.
+        "thinking": {"type": "disabled"},
     }
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
