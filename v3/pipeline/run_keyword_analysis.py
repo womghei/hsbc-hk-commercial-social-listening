@@ -49,6 +49,22 @@ except ImportError:
     print("ERROR: cannot import justone_xhs_search from integrations/", file=sys.stderr)
     raise
 
+
+def _load_box_card_secrets() -> None:
+    """Fallback when secret-request did not inject into Shell env."""
+    path = Path('/home/box/sand-data/box-secrets.json')
+    if not path.exists():
+        return
+    try:
+        card = (json.loads(path.read_text(encoding='utf-8')).get('card') or {})
+    except Exception:
+        return
+    for name in ('DEEPSEEK_API_KEY', 'JUSTONE_API_KEY', 'JUSTONE_API_TOKEN'):
+        val = card.get(name)
+        if isinstance(val, str) and val.strip() and not os.environ.get(name):
+            os.environ[name] = val
+
+
 HKT = timezone(timedelta(hours=8))
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 DEEPSEEK_MODEL = "deepseek-chat"
@@ -479,6 +495,7 @@ def main() -> int:
         print("Provide --keywords or --keywords-file", file=sys.stderr)
         return 2
 
+    _load_box_card_secrets()
     token = os.environ.get("JUSTONE_API_TOKEN") or os.environ.get("JUSTONE_API_KEY") or ""
     deepseek_key = os.environ.get("DEEPSEEK_API_KEY") or ""
     # Never print keys
